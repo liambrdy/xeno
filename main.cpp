@@ -23,22 +23,14 @@ typedef uint64_t u64;
 typedef float f32;
 typedef double f64;
 
-#define CHUNK_UNINITIALIZED INT32_MAX
-
-struct Chunk {
-    i32 x, y;
-
-    Chunk *next;
-};
-
 struct MemoryArena {
     u8 *memory;
     size_t capacity;
     size_t index;
 };
 
-struct World {
-    Chunk chunks[4096];
+struct GameState {
+    MemoryArena arena;
 };
 
 void ArenaInit(MemoryArena *arena, void *mem, size_t capacity)
@@ -64,73 +56,27 @@ void ArenaClear(MemoryArena *arena)
 #define PushStruct(arena, type) (type *)ArenaPush(arena, sizeof(type))
 #define PushArray(arena, type, count) (type *)ArenaPush(arena, count * sizeof(type))
 
-Chunk *GetChunk(World *world, int x, int y, MemoryArena *arena)
-{
-    int slotHash = 7 * x + 2 * y;
-    int slotIndex = slotHash & (ArrayCount(world->chunks)-1);
-    assert(slotIndex < ArrayCount(world->chunks));
-
-    Chunk *chunk = &world->chunks[slotIndex];
-
-    do
-    {
-        if (chunk->x == x && chunk->y == y) {
-            break;
-        }
-
-        if (chunk->x != CHUNK_UNINITIALIZED && !chunk->next) {
-            chunk->next = PushStruct(arena, Chunk);
-            chunk = chunk->next;
-            chunk->x = CHUNK_UNINITIALIZED;
-        }
-
-        if (chunk->x == CHUNK_UNINITIALIZED) {
-            chunk->x = x;
-            chunk->y = y;
-
-            chunk->next = 0;
-            
-            break;
-        }
-
-        chunk = chunk->next;
-    } while (chunk);
-    
-    return chunk;
-}
-
-void InitializeWorld(World *world)
-{
-    for (u32 chunkIndex = 0; chunkIndex < ArrayCount(world->chunks); chunkIndex++) {
-        world->chunks[chunkIndex].x = CHUNK_UNINITIALIZED;
-        world->chunks[chunkIndex].next = 0;
-    }
-}
-
 int main()
 {
-    InitWindow(800, 600, "Xeno");
+    // InitWindow(800, 600, "Xeno");
 
-    SetTargetFPS(60);
+    // SetTargetFPS(60);
 
     size_t memoryBlockSize = Megabytes(100);
-    void *memoryBlock = MemAlloc(memoryBlockSize);
+    u8 *memoryBlock = (u8 *)MemAlloc(memoryBlockSize);
     
-    MemoryArena arena = {};
-    ArenaInit(&arena, memoryBlock, memoryBlockSize);
+    GameState *gameState = (GameState *)memoryBlock;
+    ArenaInit(&gameState->arena, memoryBlock + sizeof(GameState), memoryBlockSize - sizeof(GameState));
 
-    World *world = PushStruct(&arena, World);
-    InitializeWorld(world);
+    // while (!WindowShouldClose()) {
+    //     PollInputEvents();
 
-    while (!WindowShouldClose()) {
-        PollInputEvents();
-
-        BeginDrawing();
-        EndDrawing();
-    }
+    //     BeginDrawing();
+    //     EndDrawing();
+    // }
 
     MemFree(memoryBlock);
-    CloseWindow();
+    // CloseWindow();
 
     return 0;
 }
