@@ -1,4 +1,4 @@
-CPP_FLAGS:=`pkg-config --cflags raylib`
+CPP_FLAGS:=`pkg-config --cflags raylib` -g
 LD_FLAGS:=`pkg-config --libs raylib`
 
 main: main.cpp
