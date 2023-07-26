@@ -93,8 +93,8 @@ u32 AddPlayer(GameState *state, v2 p) {
     Entity e = {};
     e.pos = p;
     e.type = EntityTypePlayer;
-    e.height = state->tileSideInMeters - 1;
-    e.width = e.height/2;
+    e.height = 1.0f;
+    e.width = 0.5f;
     e.collides = true;
 
     return AddEntity(state, e);
@@ -170,7 +170,7 @@ int main()
     GameState *gameState = (GameState *)memoryBlock;
     ArenaInit(&gameState->arena, memoryBlock + sizeof(GameState), memoryBlockSize - sizeof(GameState));
 
-    i32 tileSideInPixels = TILE_SIZE;
+    i32 tileSideInPixels = 60;
     gameState->tileSideInMeters = 1.5f;
     gameState->metersToPixels = (f32)tileSideInPixels / gameState->tileSideInMeters;
 
@@ -229,7 +229,7 @@ int main()
 
     u32 playerIndex = AddPlayer(gameState, V2(2, 2));
 
-    v2 target = V2(0, 0);
+    v2 target = gameState->entities[playerIndex].pos;
     SetCamera(gameState, target, (f32) width, (f32) height);
 
     while (!WindowShouldClose()) {
