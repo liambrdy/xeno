@@ -16,6 +16,7 @@ struct MemoryArena {
 enum EntityType {
     EntityTypeWall,
     EntityTypePlayer,
+    EntityTypeEnemy,
 };
 
 struct Entity {
@@ -100,15 +101,27 @@ u32 AddPlayer(GameState *state, v2 p) {
     return AddEntity(state, e);
 }
 
+u32 AddEnemy(GameState *state, v2 p) {
+    Entity e = {};
+    e.pos = p;
+    e.type = EntityTypeEnemy;
+    e.height = 0.75f;
+    e.width = 0.75f;
+    e.collides = true;
+
+    return AddEntity(state, e);
+}
+
 void SetCamera(GameState *state, v2 center, f32 width, f32 height) {
+    // state->cam.offset = (Vector2){ 0.0f, 0.0f };
     state->cam.offset = (Vector2){ width / 2.0f, height / 2.0f };
     state->cam.target = (Vector2){ center.x * state->metersToPixels, center.y * state->metersToPixels };
     state->cam.rotation = 0.0f;
     state->cam.zoom = 1.0f;
 
     rectangle2 cameraSpace;
-    cameraSpace.min = V2(state->cam.target.x - state->cam.offset.x, state->cam.target.y - state->cam.offset.y) * (1/state->metersToPixels) - V2(state->tileSideInMeters, state->tileSideInMeters);
-    cameraSpace.max = V2(state->cam.target.x + state->cam.offset.x, state->cam.target.y + state->cam.offset.y) * (1/state->metersToPixels) + V2(state->tileSideInMeters, state->tileSideInMeters);
+    cameraSpace.min = V2(state->cam.target.x - width/2, state->cam.target.y - height/2) * (1/state->metersToPixels) - V2(state->tileSideInMeters, state->tileSideInMeters);
+    cameraSpace.max = V2(state->cam.target.x + width/2, state->cam.target.y + height/2) * (1/state->metersToPixels) + V2(state->tileSideInMeters, state->tileSideInMeters);
 
     state->hotEntityCount = 0;
     for (u32 i = 0; i < state->entityCount; i++) {
@@ -159,7 +172,7 @@ void MoveEntity(GameState *state, u32 entityIndex, float dt, v2 ddP) {
 
 int main()
 {
-    i32 width = 800, height = 600;
+    i32 width = 1280, height = 720;
     InitWindow(width, height, "Xeno");
 
     SetTargetFPS(60);
@@ -217,6 +230,10 @@ int main()
             }
         }
 
+        u32 randTileX = GetRandomValue(1, tilesPerWidth - 1);
+        u32 randTileY = GetRandomValue(1, tilesPerHeight - 1);
+        AddEnemy(gameState, V2(screenX*tilesPerWidth + randTileX, screenY*tilesPerHeight + randTileY)*gameState->tileSideInMeters);
+
         doorLeft = doorRight;
         doorBottom = doorTop;
 
@@ -229,17 +246,18 @@ int main()
 
     u32 playerIndex = AddPlayer(gameState, V2(2, 2));
 
-    v2 target = gameState->entities[playerIndex].pos;
+    v2 room = V2(0, 0);
+    v2 target = V2(0, 0);
     SetCamera(gameState, target, (f32) width, (f32) height);
 
     while (!WindowShouldClose()) {
         u32 renderCount = 0;
 
-        // f32 camSpeed = 5.0f;
-        // if (IsKeyDown(KEY_RIGHT)) { target.x += camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
-        // if (IsKeyDown(KEY_LEFT)) { target.x -= camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
-        // if (IsKeyDown(KEY_UP)) { target.y -= camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
-        // if (IsKeyDown(KEY_DOWN)) { target.y += camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
+        f32 camSpeed = 1.0f;
+        if (IsKeyDown(KEY_RIGHT)) { target.x += camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
+        if (IsKeyDown(KEY_LEFT)) { target.x -= camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
+        if (IsKeyDown(KEY_UP)) { target.y -= camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
+        if (IsKeyDown(KEY_DOWN)) { target.y += camSpeed; SetCamera(gameState, target, (f32) width, (f32) height); }
 
         v2 ddP = {};
         if (IsKeyDown(KEY_A)) ddP.x = -1;
@@ -248,7 +266,7 @@ int main()
         if (IsKeyDown(KEY_W)) ddP.y = -1;
         if (ddP.x != 0 || ddP.y != 0) {
             MoveEntity(gameState, playerIndex, 1/60.0f, ddP);
-            SetCamera(gameState, gameState->entities[playerIndex].pos, width, height);
+            // SetCamera(gameState, gameState->entities[playerIndex].pos, width, height);
         }
 
         float begin = GetTime();
@@ -256,6 +274,7 @@ int main()
         ClearBackground(GRAY);
 
         BeginMode2D(gameState->cam);
+
         for (u32 entityIndex = 0; entityIndex < gameState->hotEntityCount; entityIndex++) {
             Entity e = gameState->entities[gameState->hotEntities[entityIndex]];
             v2 pixelPosition = e.pos * gameState->metersToPixels;
@@ -269,11 +288,24 @@ int main()
                     DrawRectangle(pixelPosition.x, pixelPosition.y, dim.x, dim.y, ORANGE);
                     renderCount++;
                 } break;
+                case EntityTypeEnemy: {
+                    DrawRectangle(pixelPosition.x, pixelPosition.y, dim.x, dim.y, RED);
+                    renderCount++;
+                }
                 default: break;
             }
             // DrawRectangleLines(pixelPosition.x, pixelPosition.y, e.width, e.height, BLACK);
         }
+
+        // v2 targetPixels = target*tileSideInPixels;
+        DrawCircle(0, 0, 10, BLUE);
+
         EndMode2D();
+        for (i32 y = 0; y < height/tileSideInPixels; y++) {
+            for (i32 x = 0; x < width/tileSideInPixels; x++) {
+                DrawRectangleLines(x*tileSideInPixels, y*tileSideInPixels, tileSideInPixels, tileSideInPixels, BLACK);
+            }
+        }
         EndDrawing();
 
         float end = GetTime();
