@@ -114,8 +114,8 @@ u32 AddEnemy(GameState *state, v2 p) {
 
 void SetCamera(GameState *state, v2 center, f32 width, f32 height) {
     // state->cam.offset = (Vector2){ 0.0f, 0.0f };
-    state->cam.offset = (Vector2){ width / 2.0f, height / 2.0f };
-    state->cam.target = (Vector2){ center.x * state->metersToPixels, center.y * state->metersToPixels };
+    state->cam.offset = { width / 2.0f, height / 2.0f };
+    state->cam.target = { center.x * state->metersToPixels, center.y * state->metersToPixels };
     state->cam.rotation = 0.0f;
     state->cam.zoom = 1.0f;
 
@@ -177,7 +177,7 @@ int main()
 
     SetTargetFPS(60);
 
-    size_t memoryBlockSize = Megabytes(100);
+    u32 memoryBlockSize = Megabytes(100);
     u8 *memoryBlock = (u8 *)MemAlloc(memoryBlockSize);
     
     GameState *gameState = (GameState *)memoryBlock;
@@ -225,14 +225,14 @@ int main()
                 }
 
                 if (tileValue == 2) {
-                    AddWall(gameState, V2(tileX, tileY)*gameState->tileSideInMeters);
+                    AddWall(gameState, V2((f32)tileX, (f32)tileY)*gameState->tileSideInMeters);
                 }
             }
         }
 
         u32 randTileX = GetRandomValue(1, tilesPerWidth - 1);
         u32 randTileY = GetRandomValue(1, tilesPerHeight - 1);
-        AddEnemy(gameState, V2(screenX*tilesPerWidth + randTileX, screenY*tilesPerHeight + randTileY)*gameState->tileSideInMeters);
+        AddEnemy(gameState, V2((f32)screenX*tilesPerWidth + randTileX, (f32)screenY*tilesPerHeight + randTileY)*gameState->tileSideInMeters);
 
         doorLeft = doorRight;
         doorBottom = doorTop;
@@ -269,7 +269,7 @@ int main()
             // SetCamera(gameState, gameState->entities[playerIndex].pos, width, height);
         }
 
-        float begin = GetTime();
+        double begin = GetTime();
         BeginDrawing();
         ClearBackground(GRAY);
 
@@ -281,16 +281,14 @@ int main()
             v2 dim = V2(e.width, e.height) * gameState->metersToPixels;
             switch (e.type) {
                 case EntityTypeWall: {
-                    DrawRectangle(pixelPosition.x, pixelPosition.y, dim.x, dim.y, WHITE);
+                    DrawRectangle((i32)pixelPosition.x, (i32)pixelPosition.y, (i32)dim.x, (i32)dim.y, WHITE);
                     renderCount++;
                 } break;
                 case EntityTypePlayer: {
-                    DrawRectangle(pixelPosition.x, pixelPosition.y, dim.x, dim.y, ORANGE);
-                    renderCount++;
+                    DrawRectangle((i32)pixelPosition.x, (i32)pixelPosition.y, (i32)dim.x, (i32)dim.y, ORANGE);                    renderCount++;
                 } break;
                 case EntityTypeEnemy: {
-                    DrawRectangle(pixelPosition.x, pixelPosition.y, dim.x, dim.y, RED);
-                    renderCount++;
+                    DrawRectangle((i32)pixelPosition.x, (i32)pixelPosition.y, (i32)dim.x, (i32)dim.y, RED);                    renderCount++;
                 }
                 default: break;
             }
@@ -308,8 +306,8 @@ int main()
         }
         EndDrawing();
 
-        float end = GetTime();
-        float past = end - begin;
+        double end = GetTime();
+        double past = end - begin;
         printf("Drew %d objects in %f seconds\n", renderCount, past);
     }
 
